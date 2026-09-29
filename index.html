@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Assam District Explorer</title>
+
+  <!-- Leaflet CSS -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: "Segoe UI", Arial, sans-serif;
+    }
+
+    body {
+      background: #f4f7fb;
+      color: #172033;
+    }
+
+    /* HEADER */
+    header {
+      background: #0b3d3b;
+      color: white;
+      padding: 22px 35px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo h1 {
+      font-size: 26px;
+      margin-bottom: 5px;
+    }
+
+    .logo p {
+      font-size: 14px;
+      opacity: 0.8;
+    }
+
+    .badge {
+      background: rgba(255,255,255,0.12);
+      padding: 9px 15px;
+      border-radius: 20px;
+      font-size: 13px;
+    }
+
+    /* DASHBOARD */
+    .dashboard {
+      display: grid;
+      grid-template-columns: 1fr 360px;
+      gap: 20px;
+      padding: 20px;
+      max-width: 1500px;
+      margin: auto;
+    }
+
+    .map-container,
+    .info-panel {
+      background: white;
+      border-radius: 15px;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.07);
+      overflow: hidden;
+    }
+
+    #map {
+      height: 650px;
+      width: 100%;
+    }
+
+    /* INFORMATION PANEL */
+    .info-panel {
+      padding: 25px;
+    }
+
+    .info-panel h2 {
+      color: #0b3d3b;
+      margin-bottom: 8px;
+    }
+
+    .instruction {
+      color: #6b7280;
+      font-size: 14px;
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+
+    .district-card {
+      display: none;
+    }
+
+    .district-name {
+      font-size: 28px;
+      color: #0b3d3b;
+      margin-bottom: 15px;
+    }
+
+    .place-image {
+      width: 100%;
+      height: 190px;
+      object-fit: cover;
+      border-radius: 12px;
+      margin-bottom: 15px;
+    }
+
+    .place-title {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .place-description {
+      font-size: 14px;
+      color: #5b6472;
+      line-height: 1.6;
+    }
+
+    .location-tag {
+      display: inline-block;
+      margin-top: 15px;
+      padding: 7px 12px;
+      border-radius: 20px;
+      background: #e7f4f0;
+      color: #0b5d53;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    /* SEARCH */
+    .search-box {
+      padding: 15px 20px;
+      background: white;
+      border-bottom: 1px solid #eee;
+    }
+
+    #search {
+      width: 100%;
+      padding: 11px 14px;
+      border: 1px solid #d5d9df;
+      border-radius: 8px;
+      outline: none;
+      font-size: 14px;
+    }
+
+    #search:focus {
+      border-color: #0b3d3b;
+    }
+
+    /* FOOTER */
+    footer {
+      text-align: center;
+      padding: 20px;
+      color: #7b8491;
+      font-size: 13px;
+    }
+
+    /* LEAFLET POPUP */
+    .leaflet-popup-content {
+      font-size: 14px;
+    }
+
+    /* MOBILE */
+    @media (max-width: 900px) {
+      .dashboard {
+        grid-template-columns: 1fr;
+      }
+
+      #map {
+        height: 500px;
+      }
+
+      header {
+        padding: 18px 20px;
+      }
+
+      .badge {
+        display: none;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <div class="logo">
+    <h1>Assam District Explorer</h1>
+    <p>Interactive map of Assam and its important places</p>
+  </div>
+
+  <div class="badge">
+    Interactive Dashboard
+  </div>
+</header>
+
+<div class="dashboard">
+
+  <!-- MAP -->
+  <div class="map-container">
+
+    <div class="search-box">
+      <input
+        type="text"
+        id="search"
+        placeholder="Search district..."
+      />
+    </div>
+
+    <div id="map"></div>
+
+  </div>
+
+  <!-- INFORMATION -->
+  <div class="info-panel">
+
+    <div id="defaultInfo">
+
+      <h2>Explore Assam</h2>
+
+      <p class="instruction">
+        Click on any district on the map to view one important
+        place associated with that district.
+      </p>
+
+      <p class="instruction">
+        You can also use the search box above the map to find
+        a district.
+      </p>
+
+    </div>
+
+    <div id="districtCard" class="district-card">
+
+      <div class="district-name" id="districtName">
+        District
+      </div>
+
+      <img
+        id="placeImage"
+        class="place-image"
+        src=""
+        alt="Important place"
+      />
+
+      <div class="place-title" id="placeTitle">
+        Important Place
+      </div>
+
+      <p class="place-description" id="placeDescription">
+        Description
+      </p>
+
+      <span class="location-tag" id="locationTag">
+        Assam
+      </span>
+
+    </div>
+
+  </div>
+
+</div>
+
+<footer>
+  Assam District Explorer • Interactive Geographic Dashboard
+</footer>
+
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+
+/* -------------------------------------------------------
+   1. IMPORTANT PLACES DATA
+   ------------------------------------------------------- */
+
+const districtData = {
+
+  "Kamrup Metropolitan": {
+    place: "Kamakhya Temple",
+    description:
+      "One of the most important Shakti Peethas in India, located on Nilachal Hill in Guwahati.",
+    image:
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/Kamakhya_Temple.jpg/640px-Kamakhya_Temple.jpg"
+  },
+
+  "Kamrup": {
+    place: "Hajo",
+    description:
+      "Hajo is a historic pilgrimage centre known for places of religious and cultural importance.",
+    image:
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8d/Hajo_Assam.jpg/640px-Hajo_Assam.jpg"
+  },
+
+  "Dibrugarh": {
+    place: "Dibrugarh Tea Gardens",
+    description:
+      "Dibrugarh is widely known for its tea gardens and its importance in Assam's tea-producing region.",
+    image:
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Tea_garden_assam.jpg/640px-Tea_garden_assam.jpg"
+  },
+
+  "Sivasagar": {
+    place: "Rang Ghar",
+    description:
+      "Rang Ghar is an iconic Ahom-era structure and one of the most recognisable historical landmarks of Assam.",
+    image:
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/6/68/Rang_Ghar_Sivasagar.jpg/640px-Rang_Ghar_Sivasagar.jpg"
+  },
+
+  "Jorhat": {
+    place: "Majuli",
+    description:
+      "Majuli is a culturally significant river island associated with Assamese Vaishnavite traditions and satras.",
+    image:
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/1/17/Majuli_Island.jpg/640px-Majuli_Island.jpg"
+  },
+
+  "Golaghat": {
+    place: "Kaziranga National Park",
+    description:
+      "Kaziranga is a UNESCO World Heritage Site famous for its one-horned rhinoceroses and rich biodiversity.",
+    image:
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7e/One-horned_Rhinoceros_Kaziranga.jpg/640px-One-horned_Rhinoceros_Kaziranga.jpg"
+  },
+
+  "Tinsukia": {
+    place: "Dibru-Saikhowa National Park",
+    description:
+      "A major biodiversity-rich protected area known for wetlands, forests and diverse wildlife.",
+    image:
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/2/23/Dibru-Saikhowa.jpg/640px-Dibru-Saikhowa.jpg"
+  },
+
+  "Sonitpur": {
+    place: "Nameri National Park",
+    description:
+      "Nameri is known for its forests, river ecosystem and diverse wildlife.",
+    image:
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9c/Nameri_National_Park.jpg/640px-Nameri_National_Park.jpg"
+  },
+
+  "Nagaon": {
+    place: "Pobitora Wildlife Sanctuary",
+    description:
+      "Pobitora is well known for its population of Indian one-horned rhinoceroses.",
+    image:
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Pobitora_Wildlife_Sanctuary.jpg/640px-Pobitora_Wildlife_Sanctuary.jpg"
+  },
+
+  "Dhemaji": {
+    place: "Gerukamukh",
+    description:
+      "Gerukamukh is a scenic area associated with the Subansiri River and surrounding natural landscapes.",
+    image:
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4b/Subansiri_River.jpg/640px-Subansiri_River.jpg"
+  }
+
+};
+
+
+/* -------------------------------------------------------
+   2. CREATE MAP
+   ------------------------------------------------------- */
+
+const map = L.map("map").setView(
+  [26.2, 92.9],
+  7
+);
+
+
+/* -------------------------------------------------------
+   3. BASE MAP
+   ------------------------------------------------------- */
+
+L.tileLayer(
+  "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+  {
+    maxZoom: 18,
+    attribution:
+      '&copy; OpenStreetMap contributors'
+  }
+).addTo(map);
+
+
+/* -------------------------------------------------------
+   4. DEFAULT MAP STYLE
+   ------------------------------------------------------- */
+
+function defaultStyle() {
+
+  return {
+    color: "#ffffff",
+    weight: 1.5,
+    fillColor: "#3c8d78",
+    fillOpacity: 0.65
+  };
+
+}
+
+
+/* -------------------------------------------------------
+   5. HOVER STYLE
+   ------------------------------------------------------- */
+
+function hoverStyle(layer) {
+
+  layer.setStyle({
+
+    weight: 3,
+    color: "#0b3d3b",
+    fillColor: "#80c9a9",
+    fillOpacity: 0.85
+
+  });
+
+}
+
+
+/* -------------------------------------------------------
+   6. RESET STYLE
+   ------------------------------------------------------- */
+
+function resetStyle(layer) {
+
+  layer.setStyle(defaultStyle());
+
+}
+
+
+/* -------------------------------------------------------
+   7. SHOW DISTRICT INFORMATION
+   ------------------------------------------------------- */
+
+function showDistrict(district) {
+
+  const data = districtData[district];
+
+  document.getElementById("defaultInfo")
+    .style.display = "none";
+
+  document.getElementById("districtCard")
+    .style.display = "block";
+
+  document.getElementById("districtName")
+    .innerText = district;
+
+  if (data) {
+
+    document.getElementById("placeTitle")
+      .innerText = data.place;
+
+    document.getElementById("placeDescription")
+      .innerText = data.description;
+
+    document.getElementById("placeImage")
+      .src = data.image;
+
+    document.getElementById("locationTag")
+      .innerText = district + ", Assam";
+
+  } else {
+
+    document.getElementById("placeTitle")
+      .innerText = "Important Place";
+
+    document.getElementById("placeDescription")
+      .innerText =
+        "Important place information for this district can be added to the districtData section of the code.";
+
+    document.getElementById("placeImage")
+      .src =
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/Assam_map.png/640px-Assam_map.png";
+
+    document.getElementById("locationTag")
+      .innerText = district + ", Assam";
+
+  }
+
+}
+
+
+/* -------------------------------------------------------
+   8. LOAD ASSAM DISTRICT GEOJSON
+   ------------------------------------------------------- */
+
+fetch(
+  "https://raw.githubusercontent.com/india-in-data/india-districts/master/india_districts.geojson"
+)
+
+.then(response => response.json())
+
+.then(data => {
+
+  const assamDistricts = {
+
+    type: "FeatureCollection",
+
+    features: data.features.filter(feature => {
+
+      const state =
+        feature.properties.ST_NM ||
+        feature.properties.STATE_NAME ||
+        feature.properties.state;
+
+      return state &&
+        state.toLowerCase() === "assam";
+
+    })
+
+  };
+
+
+  L.geoJSON(
+    assamDistricts,
+
+    {
+
+      style: defaultStyle,
+
+      onEachFeature: function(feature, layer) {
+
+        const district =
+          feature.properties.DISTRICT ||
+          feature.properties.district ||
+          feature.properties.NAME_2 ||
+          "Unknown District";
+
+
+        /* TOOLTIP */
+
+        layer.bindTooltip(
+          district,
+          {
+            sticky: true
+          }
+        );
+
+
+        /* CLICK */
+
+        layer.on(
+          "click",
+          function() {
+
+            showDistrict(district);
+
+          }
+        );
+
+
+        /* HOVER */
+
+        layer.on(
+          "mouseover",
+          function() {
+
+            hoverStyle(layer);
+
+          }
+        );
+
+
+        layer.on(
+          "mouseout",
+          function() {
+
+            resetStyle(layer);
+
+          }
+        );
+
+      }
+
+    }
+
+  ).addTo(map);
+
+})
+
+.catch(error => {
+
+  console.error(
+    "Could not load Assam district map:",
+    error
+  );
+
+});
+
+
+/* -------------------------------------------------------
+   9. SEARCH DISTRICT
+   ------------------------------------------------------- */
+
+document
+  .getElementById("search")
+  .addEventListener(
+    "input",
+    function() {
+
+      const searchValue =
+        this.value.toLowerCase().trim();
+
+      document
+        .querySelectorAll(".leaflet-interactive")
+        .forEach(layer => {
+
+          const tooltip =
+            layer.getTooltip();
+
+          if (!tooltip) return;
+
+          const district =
+            tooltip.getContent()
+              .toLowerCase();
+
+          if (
+            searchValue &&
+            district.includes(searchValue)
+          ) {
+
+            layer.setStyle({
+
+              weight: 4,
+              color: "#0b3d3b",
+              fillOpacity: 1
+
+            });
+
+          } else {
+
+            resetStyle(layer);
+
+          }
+
+        });
+
+    }
+  );
+
+</script>
+
+</body>
+</html>
